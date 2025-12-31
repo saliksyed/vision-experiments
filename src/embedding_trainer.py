@@ -9,9 +9,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 import torch
 
-from font_dataset import FontDataModule, FontSampleConfig
+from embedding_dataset import EmbeddingDataModule, FontSampleConfig
 from embedding_model import FontEmbeddingModel
-
+from constants import GOOGLE_FONTS_METADATA_DIR, MODEL_CHECKPOINT_DIR
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -61,7 +61,7 @@ def main():
 
     font_paths = []
 
-    with open("../dataset/curated_fonts.csv", "r") as f:
+    with open(f"{GOOGLE_FONTS_METADATA_DIR}/curated_fonts.csv", "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
             font_paths.append(row["font_path"])
@@ -78,7 +78,7 @@ def main():
         min_glyphs=args.min_glyphs,
     )
 
-    dm = FontDataModule(
+    dm = EmbeddingDataModule(
         font_paths,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
@@ -126,6 +126,8 @@ def main():
     )
 
     trainer.fit(model, datamodule=dm)
+    trainer.save_checkpoint(f"{MODEL_CHECKPOINT_DIR}/embedding_model.ckpt")
+    print("Embedding model saved to", f"{MODEL_CHECKPOINT_DIR}/embedding_model.ckpt")
 
 
 if __name__ == "__main__":

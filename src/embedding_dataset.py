@@ -23,7 +23,7 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-
+from functools import lru_cache
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -49,7 +49,7 @@ def _mask_to_sdf(mask01: np.ndarray) -> np.ndarray:
     dist_out = distance_transform_edt(~inside).astype(np.float32)
     return dist_out - dist_in
 
-
+@lru_cache(maxsize=50000)
 def _render_char_mask(
     face: freetype.Face,
     ch: str,
@@ -109,7 +109,7 @@ class FontSampleConfig:
     canvas: int = 256
     ppem: int = 256
     thresh: int = 16
-    samples_per_font: int = 16
+    samples_per_font: int = 8
 
     # Context/target sampling
     ctx_k_min: int = 10
@@ -344,7 +344,7 @@ def font_masked_collate(items: List[Dict[str, torch.Tensor]]) -> Dict[str, torch
 # DataModule
 # -----------------------------
 
-class FontDataModule(pl.LightningDataModule):
+class EmbeddingDataModule(pl.LightningDataModule):
     """
     Builds a contiguous glyph-id mapping (codepoint -> gid) from the provided font paths,
     then provides train/val dataloaders yielding the required batch dict.

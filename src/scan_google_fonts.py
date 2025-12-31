@@ -31,6 +31,7 @@ import csv
 import hashlib
 import json
 import math
+import subprocess
 import os
 import re
 import shutil
@@ -41,7 +42,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from fontTools.ttLib import TTFont
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.boundsPen import BoundsPen
-
+from constants import GOOGLE_FONTS_DIR, GOOGLE_FONTS_METADATA_DIR, BASE_DATA_DIR
 
 # ----------------------------
 # Helpers: parsing METADATA.pb
@@ -701,8 +702,6 @@ def find_family_dirs(gf_root: Path) -> List[Path]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("google_fonts_repo_fonts_dir", type=str, help="Path to the repo's 'fonts' directory (the one containing ofl/apache/ufl).")
-    ap.add_argument("--out_dir", type=str, default="./gf_dataset")
     ap.add_argument("--min_glyphs", type=int, default=200)
     ap.add_argument("--require_basic_latin", action="store_true")
     ap.add_argument("--ham_threshold", type=int, default=3, help="SimHash Hamming threshold for near-dup clustering (2-4 typical).")
@@ -710,9 +709,14 @@ def main():
     ap.add_argument("--copy_to", type=str, default="", help="If set, generate a copy manifest into this directory (and optionally copy).")
     ap.add_argument("--do_copy", action="store_true", help="Actually copy fonts per manifest (otherwise dry-run).")
     args = ap.parse_args()
+    base_data_dir = Path(BASE_DATA_DIR).expanduser().resolve()
+    if not os.path.exists(GOOGLE_FONTS_DIR):
+        os.makedirs(base_data_dir, exist_ok=True)
+        google_fonts_dir = Path(GOOGLE_FONTS_DIR).expanduser().resolve()
+        subprocess.run(["git", "clone", "--depth=1", "https://github.com/google/fonts.git", str(google_fonts_dir)])
 
-    gf_root = Path(args.google_fonts_repo_fonts_dir).expanduser().resolve()
-    out_dir = Path(args.out_dir).expanduser().resolve()
+    gf_root = Path(GOOGLE_FONTS_DIR).expanduser().resolve()
+    out_dir = Path(GOOGLE_FONTS_METADATA_DIR).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     print("Scanning Google Fonts repo...")
     family_dirs = find_family_dirs(gf_root)
